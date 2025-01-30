@@ -33,19 +33,19 @@ parser.add_argument("--Challenge", action="store_true")
 args, _ = parser.parse_known_args()
 
 # url = "http://alab.ise.ous.ac.jp/robocupdata/rc2021-roundrobin/normal/alice2021-helios2021/"
-urls = [args.base_url + os.sep + subpath + os.sep for subpath in args.subpaths]
+urls = [args.base_url + subpath + os.sep for subpath in args.subpaths]
 save_dir = args.save_dir
 os.makedirs(args.save_dir, exist_ok=True)
 
 
 # Function to download data
-def download_data(file_name, file_url):
-    file_path = os.path.join(save_dir, file_name)
-    with requests.get(file_url, stream=True) as file_response:
-        with open(file_path, "wb") as file:
-            for chunk in file_response.iter_content(chunk_size=8192):
-                file.write(chunk)
-    print(f"Downloaded {file_name}")
+# def download_data(file_name, file_url):
+#     file_path = os.path.join(save_dir, file_name)
+#     with requests.get(file_url, stream=True) as file_response:
+#         with open(file_path, "wb") as file:
+#             for chunk in file_response.iter_content(chunk_size=8192):
+#                 file.write(chunk)
+#     print(f"Downloaded {file_name}")
 
 
 # Ensure matching tracking and event files
@@ -54,8 +54,35 @@ def match_tracking_and_event_files(links):
     event_files = [link for link in links if link.endswith("event.csv")]
 
     # Extract unique identifiers (e.g., sim25)
-    tracking_ids = {file.split("-")[-1].split(".")[0]: file for file in tracking_files}
-    event_ids = {file.split("-")[-1].split(".")[0]: file for file in event_files}
+    # tracking_ids = {file.split("-")[-1].split(".")[0]: file for file in tracking_files}
+    # event_ids = {file.split("-")[-1].split(".")[0]: file for file in event_files}
+    # 30/01/2025 追記：でもsim25のようなidを含むリンクが複数あるため全部を抽出する方法を考え直す
+    tracking_ids = {}
+    event_ids = {}
+    for file in tracking_files:
+        splits = file.split("-")
+        id = (
+            splits[0]
+            + "-"
+            + splits[1]
+            + "-"
+            + splits[-2]
+            + "-"
+            + splits[-1].split(".")[0]
+        )
+        tracking_ids[id] = file
+    for file in event_files:
+        splits = file.split("-")
+        id = (
+            splits[0]
+            + "-"
+            + splits[1]
+            + "-"
+            + splits[-2]
+            + "-"
+            + splits[-1].split(".")[0]
+        )
+        event_ids[id] = file
 
     # Find common IDs
     matched_pairs = []
@@ -113,6 +140,7 @@ for url in urls:
     response = requests.get(url)
     soup = BeautifulSoup(response.text, "html.parser")
     i = 0
+
     with ThreadPoolExecutor() as executor:
         links = [link["href"] for link in soup.find_all("a", href=True)]
         matched_pairs = match_tracking_and_event_files(links)
@@ -128,8 +156,5 @@ for url in urls:
 print("-----------------")
 print("Finished downloading data!!")
 
-import pdb
-
-pdb.set_trace()
 
 # preprocess.py iterable list, stored_data as an input for preprocess.py # sim update
